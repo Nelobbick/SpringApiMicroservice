@@ -1,0 +1,12 @@
+databaseChangeLog:
+  - changeSet:
+      id: 1_3
+      author: dev
+      comment: "Создание индексов для оптимизации"
+      changes:
+        - createIndex:
+            tableName: bank_cards
+            indexName: idx_card_user
+            columns:
+              - column:
+                  name: user_id

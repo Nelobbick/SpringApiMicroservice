@@ -1,0 +1,9 @@
+databaseChangeLog:
+  - include:
+      file: db/changelog/V1/V1_1__create_users_table.yml
+  - include:
+      file: db/changelog/V1/V1_2__create_bank_cards_table.yml
+  - include:
+      file: db/changelog/V1/V1_3__create_indexes.yml
+  - include:
+      file: db/changelog/V2/V2__demo_data.yml

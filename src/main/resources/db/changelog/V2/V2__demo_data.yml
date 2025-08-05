@@ -1,0 +1,39 @@
+databaseChangeLog:
+  - changeSet:
+      id: 2
+      author: dev
+      changes:
+        - insert:
+            tableName: users
+            columns:
+              - column:
+                  name: username
+                  value: "admin@bank.com"
+              - column:
+                  name: password
+                  value: "$2a$10$xV4lQ...hashed_password"
+              - column:
+                  name: role
+                  value: "ADMIN"
+
+        - insert:
+            tableName: bank_cards
+            columns:
+              - column:
+                  name: card_number
+                  value: "4111111111111111"
+              - column:
+                  name: masked_number
+                  value: "****-****-****-1111"
+              - column:
+                  name: expiry_date
+                  value: "2025-12-31"
+              - column:
+                  name: balance
+                  value: 10000,00
+              - column:
+                  name: status
+                  value: "ACTIVE"
+              - column:
+                  name: user_id
+                  value: 1

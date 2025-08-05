@@ -1,0 +1,46 @@
+# application.yml
+
+spring:
+  application:
+    name: bank-card-management-service
+  
+  # Настройки базы данных
+  datasource:
+    url: jdbc:postgresql://localhost:5432/BankDB
+    username: postgres
+    password: lantop13452
+    driver-class-name: org.postgresql.Driver
+  
+  # Настройки JPA
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+  
+  # Настройки Liquibase
+  liquibase:
+    change-log: classpath:/db/changelog/migration.yml
+    enabled: false
+
+# Настройки сервера
+server:
+  port: 8080
+
+# Пользовательские настройки
+app:
+  security:
+    encryption:
+      algorithm: AES
+      key: MegaEncryptionKey
+    jwt:
+      secret: MegaSecretKey
+      expiration: 86400000 # 24 hours
+
+# Логирование
+logging:
+  level:
+    com.example.bankcard: DEBUG
+    org.springframework.security: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
