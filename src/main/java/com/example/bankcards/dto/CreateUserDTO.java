@@ -1,21 +1,24 @@
 package com.example.bankcards.dto;
 
 import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.Pattern;
+
 
 public class CreateUserDTO {
     @NotEmpty(message = "имя не должно быть пустым")
     private String username;
-    @NotEmpty
+    @NotEmpty(message = "Пароль не должен быть пустым")
     private String password;
-    @NotEmpty
+    @Pattern(regexp = "^(ADMIN|USER)$",
+            message = "Роль должна быть ADMIN или USER")
     private String role;
-
-    public String getPassword() {
-        return password;
-    }
 
     public String getUsername() {
         return username;
+    }
+
+    public String getPassword() {
+        return password;
     }
 
     public String getRole() {

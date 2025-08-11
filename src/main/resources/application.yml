@@ -1,14 +1,17 @@
 # application.yml
 
 spring:
+  main:
+    allow-bean-definition-overriding: true
+    allow-circular-references: false
   application:
     name: bank-card-management-service
   
   # Настройки базы данных
   datasource:
-    url: jdbc:postgresql://localhost:5432/BankDB
-    username: postgres
-    password: lantop13452
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/bank_cards_db}
+    username: ${SPRING_DATASOURCE_USERNAME:myuser}
+    password: ${SPRING_DATASOURCE_PASSWORD:mypassword}
     driver-class-name: org.postgresql.Driver
   
   # Настройки JPA
@@ -21,7 +24,7 @@ spring:
   # Настройки Liquibase
   liquibase:
     change-log: classpath:/db/changelog/migration.yml
-    enabled: false
+    enabled: true
 
 # Настройки сервера
 server:
@@ -32,15 +35,18 @@ app:
   security:
     encryption:
       algorithm: AES
-      key: MegaEncryptionKey
+      key: "pu-11-yegp-secret-key-1234567890abc"
+      iv: "16-byte-iv-12345"
     jwt:
-      secret: MegaSecretKey
-      expiration: 86400000 # 24 hours
+      secret: ${APP_SECURITY_JWT_SECRET:your_default_secret_key_change_it}
+      expiration: ${APP_SECURITY_JWT_EXPIRATION:3600000}
 
 # Логирование
 logging:
   level:
-    com.example.bankcard: DEBUG
-    org.springframework.security: DEBUG
+    com.yourpackage: DEBUG
+    org.springframework: INFO
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+  file:
+    name: logs/app.log

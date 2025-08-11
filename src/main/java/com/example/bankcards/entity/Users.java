@@ -1,5 +1,6 @@
 package com.example.bankcards.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 
 import java.util.List;
@@ -9,6 +10,7 @@ import java.util.List;
         indexes = {
                 @Index(name = "idx_users_username", columnList = "username")
         })
+
 public class Users {
 
     @Id
@@ -32,49 +34,49 @@ public class Users {
 
     }
 
-    public Long getId() {
-        return id;
-    }
-
     public Users(String username, String password, String role) {
         this.username = username;
         this.password = password;
         this.role = role;
     }
 
+    public String getUsername() {
+        return username;
+    }
+
     public String getPassword() {
         return password;
+    }
+
+    public Long getId() {
+        return id;
     }
 
     public String getRole() {
         return role;
     }
 
-    public String getUsername() {
-        return username;
-    }
-
     public List<BankCards> getCards() {
         return cards;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public void setCards(List<BankCards> cards) {
-        this.cards = cards;
     }
 
     public void setPassword(String password) {
         this.password = password;
     }
 
+    public void setUsername(String username) {
+        this.username = username;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
     public void setRole(String role) {
         this.role = role;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
+    public void setCards(List<BankCards> cards) {
+        this.cards = cards;
     }
 }

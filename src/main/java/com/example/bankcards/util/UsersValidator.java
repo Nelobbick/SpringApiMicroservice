@@ -1,9 +1,6 @@
 package com.example.bankcards.util;
 
 import com.example.bankcards.entity.Users;
-import com.example.bankcards.service.UsersDetailsService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 import org.springframework.validation.Errors;
 import org.springframework.validation.Validator;
@@ -11,26 +8,38 @@ import org.springframework.validation.Validator;
 @Component
 public class UsersValidator implements Validator {
 
-    private final UsersDetailsService usersDetailsService;
-
-    public UsersValidator(UsersDetailsService usersDetailsService) {
-        this.usersDetailsService = usersDetailsService;
+    @Override
+    public boolean supports(Class<?> clazz) {
+        return Users.class.equals(clazz);
     }
 
+    @Override
+    public void validate(Object target, Errors errors) {
+        Users user = (Users) target;
 
-    public boolean supports(Class<?> aClass) {
-        return Users.class.equals(aClass);
-    }
-
-    public void validate(Object o, Errors errors) {
-        Users users = (Users) o;
-
-        try {
-            usersDetailsService.loadUserByUsername(users.getUsername());
-        } catch (UsernameNotFoundException ignored) {
-            return; // все ок, пользователь не найден
+        // Проверка username
+        if (user.getUsername() == null || user.getUsername().isEmpty()) {
+            errors.rejectValue("username", "required", "Username is required");
+        } else if (user.getUsername().length() < 3 || user.getUsername().length() > 50) {
+            errors.rejectValue("username", "size", "Username must be between 3 and 50 characters");
         }
 
-        errors.rejectValue("username", "", "Человек с таким именем пользователя уже существует");
+        // Проверка password
+        if (user.getPassword() == null || user.getPassword().isEmpty()) {
+            errors.rejectValue("password", "required", "Password is required");
+        } else if (user.getPassword().length() < 8 || user.getPassword().length() > 100) {
+            errors.rejectValue("password", "size", "Password must be between 8 and 100 characters");
+        }
+
+        // Проверка role
+        if (user.getRole() == null || user.getRole().isEmpty()) {
+            errors.rejectValue("role", "required", "Role is required");
+        } else if (!isValidRole(user.getRole())) {
+            errors.rejectValue("role", "invalid", "Invalid role. Allowed values: ADMIN, USER");
+        }
+    }
+
+    private boolean isValidRole(String role) {
+        return "ROLE_ADMIN".equals(role) || "ROLE_USER".equals(role);
     }
 }

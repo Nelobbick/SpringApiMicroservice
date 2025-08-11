@@ -2,79 +2,106 @@ package com.example.bankcards.controller;
 
 import com.example.bankcards.dto.UsersDTO;
 import com.example.bankcards.entity.Users;
-import com.example.bankcards.security.JWTUtil;
-import com.example.bankcards.service.RegistrationService;
+import com.example.bankcards.repository.UsersRepository;
+import com.example.bankcards.security.JWTCore;
 import com.example.bankcards.dto.AuthenticationDTO;
-import com.example.bankcards.service.UsersDetailsService;
-import com.example.bankcards.util.UsersValidator;
 
 import jakarta.validation.Valid;
 import org.modelmapper.ModelMapper;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import java.util.Map;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
-    private final RegistrationService registrationService;
-    private final UsersValidator usersValidator;
-    private final JWTUtil jwtUtil;
-    private final ModelMapper modelMapper;
+    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
+
+    private final JWTCore jwtCore;
     private final AuthenticationManager authenticationManager;
-    @Autowired
-    public AuthController(RegistrationService registrationService, UsersValidator usersValidator, JWTUtil jwtUtil, ModelMapper modelMapper, AuthenticationManager authenticationManager) {
-        this.registrationService = registrationService;
-        this.usersValidator = usersValidator;
-        this.jwtUtil = jwtUtil;
-        this.modelMapper = modelMapper;
+    private final UsersRepository usersRepository;
+    private final PasswordEncoder passwordEncoder;
+
+
+    public AuthController(JWTCore jwtCore, AuthenticationManager authenticationManager, UsersRepository usersRepository, PasswordEncoder passwordEncoder) {
+        this.jwtCore = jwtCore;
         this.authenticationManager = authenticationManager;
+        this.usersRepository = usersRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @PostMapping("/registration")
-    public Map<String, String> performRegistration(@RequestBody @Valid UsersDTO usersDTO,
-                                                   BindingResult bindingResult) {
-        Users users = convertToUser(usersDTO);
-         usersValidator.validate(users, bindingResult);
-
+    public ResponseEntity<?> performRegistration(@RequestBody @Valid UsersDTO usersDTO,
+                                                 BindingResult bindingResult) {
+        log.info("Registration attempt for username: {}", usersDTO.getUsername());
+        // Проверка ошибок валидации
         if (bindingResult.hasErrors()) {
-            return Map.of("message", "Ошибка!");
+            StringBuilder errorMsg = new StringBuilder();
+            bindingResult.getFieldErrors().forEach(error ->
+                    errorMsg.append(error.getField()).append(": ").append(error.getDefaultMessage()).append("; ")
+            );
+            log.warn("Validation errors during registration: {}", errorMsg.toString());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorMsg.toString());
         }
+        // Проверка существования пользователя
+        if (usersRepository.existsByUsername(usersDTO.getUsername())) {
+            log.warn("Registration failed: username {} already exists", usersDTO.getUsername());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("This username already used");
+        }
+        try {
+            // Создание нового пользователя
+            Users users = new Users();
+            users.setUsername(usersDTO.getUsername());
+            users.setPassword(passwordEncoder.encode(usersDTO.getPassword()));
+            users.setRole("ROLE_USER"); // По умолчанию обычный пользователь
 
-        registrationService.register(users);
+            usersRepository.save(users);
 
-        String token = jwtUtil.generateToken(users.getUsername());
-        return Map.of("jwt-token", token);
+            log.info("User {} registered successfully", users.getUsername());
+            return ResponseEntity.ok("Success registration");
+        } catch (Exception e) {
+            log.error("Error during registration for user {}", usersDTO.getUsername(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Registration failed");
+        }
     }
 
     @PostMapping("/login")
-    public Map<String, String> performLogin(@RequestBody AuthenticationDTO authenticationDTO) {
-        UsernamePasswordAuthenticationToken authInputToken =
-                new UsernamePasswordAuthenticationToken(authenticationDTO.getUsername(),
-                        authenticationDTO.getPassword());
+    public ResponseEntity<?> performLogin(@RequestBody AuthenticationDTO authenticationDTO) {
+        log.info("Login attempt for username: {}", authenticationDTO.getUsername());
 
         try {
-            authenticationManager.authenticate(authInputToken);
+            // Попытка аутентификации
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(
+                            authenticationDTO.getUsername(),
+                            authenticationDTO.getPassword()
+                    )
+            );
+            // Установка аутентификации в контекст безопасности
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+            // Генерация JWT токена
+            String jwt = jwtCore.generateToken(authentication);
+            log.info("User {} logged in successfully", authenticationDTO.getUsername());
+            return ResponseEntity.ok(jwt);
         } catch (BadCredentialsException e) {
-            return Map.of("message", "Incorrect credentials!");
+            log.warn("Login failed for user {}: Invalid credentials", authenticationDTO.getUsername());
+            return new ResponseEntity<>(HttpStatus.UNAUTHORIZED);
+        } catch (Exception e) {
+            log.error("Error during login for user {}", authenticationDTO.getUsername(), e);
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
         }
 
-        String token = jwtUtil.generateToken(authenticationDTO.getUsername());
-        return Map.of("jwt-token", token);
-    }
 
-    public Users convertToUser(UsersDTO usersDTO) {
-        return this.modelMapper.map(usersDTO,Users.class);
     }
 }
